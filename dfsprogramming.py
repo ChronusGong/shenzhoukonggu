@@ -1,10 +1,13 @@
 import pandas as pd
 import random
 from tqdm import tqdm
+from geopy.distance import geodesic
+import json
 
 df_route = pd.read_excel('data/可用路线.xlsx')
 df_route = df_route.dropna()
-
+df_route.drop(df_route[df_route['目的地'] == '省直辖县级行政区划'].index, inplace=True)
+df_route.drop(df_route[df_route['起始地'] == '省直辖县级行政区划'].index, inplace=True)
 
 # 邻接表
 adjacency_dict = {}
@@ -24,6 +27,15 @@ for city in terminal_cities:
 # path = []
 # result_path = []
 
+with open('data/loactions.json', 'r', encoding='utf-8') as r:
+    city_dict = json.load(r)
+
+
+def cal_distance(city1, city2):
+    locs1 = city_dict[city1]
+    locs2 = city_dict[city2]
+    return geodesic((locs1[1], locs1[0]), (locs2[1], locs2[0])).km
+
 
 def dfs(start, end, path, result_path):
     # 表示Start点已经访问过了
@@ -38,13 +50,18 @@ def dfs(start, end, path, result_path):
     # 如果当前访问的点是终点，则加入resutl_path
     if start == end:
         result_path.append(path[:])
+        print(result_path)
+        # for c in path:
+        #     visit_map[c] = 0
     else:
         random.shuffle(terminal_cities)
         for c in terminal_cities:
             if len(result_path) == 128:
                 break
-            if c in start_cities and visit_map[c] == 0 and c != start and c in adjacency_dict[start]:
+            if c in start_cities and visit_map[c] == 0 and c != start and c in adjacency_dict[start] and cal_distance(c, end) <= cal_distance(start, end):
+                # print(c)
                 dfs(c, end, path, result_path)
+            # print(path)
 
     path.remove(path[-1])
     visit_map[start] = 0
@@ -84,7 +101,9 @@ def dfs_find_route():
     return result_dict
 
 
-
+# res = find_route('嘉兴市', '郑州市')
+# print(res)
+# # print(cal_distance('嘉兴市', '郑州市'))
 
 
 
